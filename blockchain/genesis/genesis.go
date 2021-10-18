@@ -66,6 +66,7 @@ func defaultConfig() Genesis {
 			JutlandBlockHeight:      13685401,
 			KamchatkaBlockHeight:    13816441,
 			LordHoweBlockHeight:     13979161,
+			MidwayBlockHeight:       33816441,
 		},
 		Account: Account{
 			InitBalanceMap: make(map[string]string),
@@ -198,6 +199,8 @@ type (
 		// 1. recover the smart contracts affected by snapshot order
 		// 2. clear snapshots in Revert()
 		LordHoweBlockHeight uint64 `yaml:"lordHoweHeight"`
+		// MidwayBlockHeight is the start height to correct index of EVM log
+		MidwayBlockHeight uint64 `yaml:"midwayHeight"`
 	}
 	// Account contains the configs for account protocol
 	Account struct {
@@ -493,6 +496,11 @@ func (g *Blockchain) IsKamchatka(height uint64) bool {
 // IsLordHowe checks whether height is equal to or larger than lordHowe height
 func (g *Blockchain) IsLordHowe(height uint64) bool {
 	return g.isPost(g.LordHoweBlockHeight, height)
+}
+
+// IsMidway checks whether height is equal to or larger than midway height
+func (g *Blockchain) IsMidway(height uint64) bool {
+	return g.isPost(g.MidwayBlockHeight, height)
 }
 
 // InitBalances returns the address that have initial balances and the corresponding amounts. The i-th amount is the
