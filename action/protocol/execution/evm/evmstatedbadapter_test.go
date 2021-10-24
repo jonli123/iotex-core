@@ -401,7 +401,7 @@ func TestSnapshotRevertAndCommit(t *testing.T) {
 	})
 	t.Run("contract snapshot/revert/commit without bug fix in memory DB", func(t *testing.T) {
 		cfg := config.Default
-		testSnapshotAndRevert(cfg, t, false, true)
+		testSnapshotAndRevert(cfg, t, false, false)
 	})
 	t.Run("contract snapshot/revert/commit with async trie in memory DB", func(t *testing.T) {
 		cfg := config.Default

@@ -449,7 +449,7 @@ func (stateDB *StateDBAdapter) RevertToSnapshot(snapshot int) {
 	if stateDB.fixSnapshotOrder {
 		delete(stateDB.suicideSnapshot, snapshot)
 		for i := snapshot + 1; ; i++ {
-			if _, ok := stateDB.suicideSnapshot[snapshot]; ok {
+			if _, ok := stateDB.suicideSnapshot[i]; ok {
 				delete(stateDB.suicideSnapshot, i)
 			} else {
 				break
@@ -469,7 +469,7 @@ func (stateDB *StateDBAdapter) RevertToSnapshot(snapshot int) {
 	if stateDB.fixSnapshotOrder {
 		delete(stateDB.contractSnapshot, snapshot)
 		for i := snapshot + 1; ; i++ {
-			if _, ok := stateDB.contractSnapshot[snapshot]; ok {
+			if _, ok := stateDB.contractSnapshot[i]; ok {
 				delete(stateDB.contractSnapshot, i)
 			} else {
 				break
@@ -482,7 +482,7 @@ func (stateDB *StateDBAdapter) RevertToSnapshot(snapshot int) {
 	if stateDB.fixSnapshotOrder {
 		delete(stateDB.preimageSnapshot, snapshot)
 		for i := snapshot + 1; ; i++ {
-			if _, ok := stateDB.preimageSnapshot[snapshot]; ok {
+			if _, ok := stateDB.preimageSnapshot[i]; ok {
 				delete(stateDB.preimageSnapshot, i)
 			} else {
 				break
