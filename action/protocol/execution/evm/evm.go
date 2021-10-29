@@ -199,9 +199,6 @@ func ExecuteContract(
 	if featureCtx.FixSnapshotOrder {
 		opts = append(opts, FixSnapshotOrderOption())
 	}
-	if featureCtx.ClearSnapshots {
-		opts = append(opts, ClearSnapshotsOption())
-	}
 	stateDB := NewStateDBAdapter(
 		sm,
 		blkCtx.BlockHeight,
