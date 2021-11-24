@@ -573,10 +573,8 @@ func (core *coreService) Logs(in *iotexapi.GetLogsRequest) ([]*iotextypes.Log, e
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid block hash")
 		}
-		logs, err = core.getLogsInBlock(logfilter.NewLogFilter(in.GetFilter(), nil, nil), startBlock)
-		if err != nil {
-			return nil, err
-		}
+		logs, err = core.getLogsInBlock(logfilter.NewLogFilter(in.GetFilter(), nil, nil),
+			startBlock, !core.cfg.Genesis.IsMidway(startBlock))
 	case in.GetByRange() != nil:
 		req := in.GetByRange()
 		startBlock := req.GetFromBlock()
@@ -1264,7 +1262,7 @@ func (core *coreService) reverseActionsInBlock(blk *block.Block, reverseStart, c
 	return res
 }
 
-func (core *coreService) getLogsInBlock(filter *logfilter.LogFilter, blockNumber uint64) ([]*iotextypes.Log, error) {
+func (core *coreService) getLogsInBlock(filter *logfilter.LogFilter, blockNumber uint64, fixTxLogIndex bool) ([]*iotextypes.Log, error) {
 	logBloomFilter, err := core.bfIndexer.BlockFilterByHeight(blockNumber)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -1283,6 +1281,20 @@ func (core *coreService) getLogsInBlock(filter *logfilter.LogFilter, blockNumber
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	if fixTxLogIndex {
+		blk, err := core.dao.GetBlockByHeight(blockNumber)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		if blk.Receipts, err = core.dao.GetReceipts(blockNumber); err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		txIndexMap, logIndexMap, err := blk.TxLogIndexMap()
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return filter.MatchLogsWithIndexFix(receipts, h, txIndexMap, logIndexMap), nil
+	}
 	return filter.MatchLogs(receipts, h), nil
 }
 
@@ -1302,7 +1314,7 @@ func (core *coreService) getLogsInRange(filter *logfilter.LogFilter, start, end,
 		return nil, err
 	}
 	for _, i := range blockNumbers {
-		logsInBlock, err := core.getLogsInBlock(filter, i)
+		logsInBlock, err := core.getLogsInBlock(filter, i, !core.cfg.Genesis.IsMidway(i))
 		if err != nil {
 			return nil, err
 		}
