@@ -96,6 +96,11 @@ var (
 	errInvalidFormat  = errors.New("invalid format of request")
 	errNotImplemented = errors.New("method not implemented")
 	errInvalidFiterID = errors.New("filter not found")
+	errInvalidBlock   = errors.New("invalid block")
+
+	pendingBlockNumber  = "pending"
+	latestBlockNumber   = "latest"
+	earliestBlockNumber = "earliest"
 )
 
 func init() {
@@ -332,12 +337,13 @@ func (svr *Web3Server) getBlockByNumber(in interface{}) (interface{}, error) {
 	}
 
 	blkMetas, err := svr.coreService.BlockMetas(num, 1)
-	if err != nil || blkMetas == nil || len(blkMetas) == 0 {
-		if err == nil {
-			err = errors.New("invalid block")
-		}
+	if err != nil {
 		return nil, err
 	}
+	if len(blkMetas) == 0 {
+		return nil, errInvalidBlock
+	}
+
 	return svr.getBlockWithTransactions(blkMetas[0], isDetailed)
 }
 
@@ -357,7 +363,7 @@ func (svr *Web3Server) getBalance(in interface{}) (interface{}, error) {
 	return intStrToHex(accountMeta.Balance)
 }
 
-//TODO: GetTransactionCount returns the number of transactions the given address has sent for the given block number
+// getTransactionCount returns the nonce for the given address
 func (svr *Web3Server) getTransactionCount(in interface{}) (interface{}, error) {
 	addr, err := getStringFromArray(in, 0)
 	if err != nil {
@@ -367,11 +373,23 @@ func (svr *Web3Server) getTransactionCount(in interface{}) (interface{}, error) 
 	if err != nil {
 		return nil, err
 	}
+	blkNum, err := getStringFromArray(in, 1)
+	if err != nil {
+		return nil, err
+	}
+	if blkNum == pendingBlockNumber {
+		pendingNonce, err := svr.coreService.ap.GetPendingNonce(ioAddr.String())
+		if err != nil {
+			return nil, err
+		}
+		return uint64ToHex(pendingNonce), nil
+	}
+	// TODO: returns the nonce in given block height after archive mode is supported
 	accountMeta, _, err := svr.coreService.Account(ioAddr)
 	if err != nil {
 		return nil, err
 	}
-	return uint64ToHex(accountMeta.PendingNonce), nil
+	return uint64ToHex(accountMeta.Nonce), nil
 }
 
 func (svr *Web3Server) call(in interface{}) (interface{}, error) {
@@ -678,11 +696,11 @@ func (svr *Web3Server) getBlockTransactionCountByNumber(in interface{}) (interfa
 		return nil, err
 	}
 	blkMetas, err := svr.coreService.BlockMetas(num, 1)
-	if err != nil || blkMetas == nil || len(blkMetas) == 0 {
-		if err == nil {
-			err = errors.New("invalid block")
-		}
+	if err != nil {
 		return nil, err
+	}
+	if len(blkMetas) == 0 {
+		return nil, errInvalidBlock
 	}
 	return uint64ToHex(uint64(blkMetas[0].NumActions)), nil
 }
@@ -726,11 +744,11 @@ func (svr *Web3Server) getTransactionByBlockNumberAndIndex(in interface{}) (inte
 	}
 	log.L().Error("acquire block meta")
 	blkMetas, err := svr.coreService.BlockMetas(num, 1)
-	if err != nil || blkMetas == nil || len(blkMetas) == 0 {
-		if err == nil {
-			err = errors.New("invalid block")
-		}
+	if err != nil {
 		return nil, err
+	}
+	if len(blkMetas) == 0 {
+		return nil, errInvalidBlock
 	}
 	actionInfos, err := svr.coreService.ActionsByBlock(blkMetas[0].Hash, idx, 1)
 	if err != nil || len(actionInfos) == 0 {
